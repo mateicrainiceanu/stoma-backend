@@ -1,49 +1,20 @@
-import { db } from "../config/db"
+import mongoose from "mongoose"
 
-interface User {
+interface IUser {
+    _id: string
     name:string, 
     email: string,
-    password: string
+    password: string,
+    token: string
 }
 
-class User {
-    constructor(name:string, email:string, password:string) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-    }
+const userSchema = new mongoose.Schema<IUser>({
+    name: { type: String, required: false },
+    email: { type: String, required: true },
+    password: { type: String, required: true },
+    token: { type: String, required: false }
+});
 
-    async save() {
-        let sql = `
-        INSERT INTO users (
-            name, email, password
-        ) 
-        VALUES (
-            '${this.name}',
-            '${this.email}',
-            '${this.password}'
-        );`
+const User = mongoose.model<IUser>('User', userSchema);
 
-        return db.execute(sql);
-    }
-
-    static findByEmail(email:string) {
-        let sql = `
-            SELECT * FROM users WHERE email = "${email}"
-        `
-        return db.execute(sql);
-    }
-
-    static saveToken(userId: number, tok: string) {
-        let sql = `
-            UPDATE users 
-            SET token="${tok}"
-            WHERE id=${userId};
-        `
-        return db.execute(sql)
-    }
-
-    
-}
-
-export {User};
+export {User, IUser};

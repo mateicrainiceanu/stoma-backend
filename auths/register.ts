@@ -9,34 +9,32 @@ import { Request, Response, NextFunction } from "express";
 import * as dotenv from 'dotenv';
 dotenv.config()
 
-const register = async (req:Request, res:Response, next:NextFunction) => {
-    const {name, email, password} = req.body
+const register = async (req: Request, res: Response, next: NextFunction) => {
+    
+    const { name, email, password } = req.body
 
-    const [result] = await User.findByEmail(email)
+    const existingUser = await User.findOne({email: email})    
 
-    if(result.length === 0){
-        //there is no user with the email adress
-        //safe to proceed with creating a new account
+    if (!existingUser) {
+        const newUser = new User({
+            name, email,
+            password: md5(password)
+        })
 
-        //saving new user
-        const newuser = new User(name, email, md5(password))
-        const [{insertId}] = await newuser.save()
+        const token = jwt.sign({
+            id: newUser._id, email, name: newUser.name
+        }, process.env.TOKEN_KEY as string)
 
-        const token = jwt.sign(
-            { id: insertId, email },
-            process.env.TOKEN_KEY as string,
-            {
-              expiresIn: "2d",
-            }
-        );
+        newUser.token = token;
 
-        const _ = await User.saveToken(insertId, token)
-        
-        res.status(201).json({...newuser, id:insertId, token:token});
+        newUser.save()
 
+        res.status(201).json(newUser)
     } else {
-        res.status(409).json({err: "A user with this email adress already exists. Try loging in."})
+        res.status(203).json({err: "Email adress already in use"});
     }
-} 
+
+
+}
 
 export default register;
